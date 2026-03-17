@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct GameBoardView: View {
+    private let boardPadding: CGFloat = 18
+
     let snapshot: SnakeGameSnapshot
     let sessionState: GameSessionState
     let countdownValue: Int?
@@ -8,8 +10,7 @@ struct GameBoardView: View {
 
     var body: some View {
         GeometryReader { proxy in
-            let size = min(proxy.size.width, proxy.size.height)
-            let cell = size / CGFloat(snapshot.boardSize)
+            let side = min(proxy.size.width, proxy.size.height)
 
             ZStack {
                 RoundedRectangle(cornerRadius: 30, style: .continuous)
@@ -20,25 +21,29 @@ struct GameBoardView: View {
                     )
 
                 Canvas { context, canvasSize in
-                    let playable = CGRect(origin: .zero, size: canvasSize)
-                    context.fill(Path(playable), with: .color(Color(red: 0.06, green: 0.09, blue: 0.07)))
+                    let metrics = GameBoardMetrics(canvasSize: canvasSize, boardSize: snapshot.boardSize)
+                    context.fill(Path(metrics.boardRect), with: .color(Color(red: 0.06, green: 0.09, blue: 0.07)))
 
                     for row in 0..<snapshot.boardSize {
                         for col in 0..<snapshot.boardSize {
-                            let rect = CGRect(x: CGFloat(col) * cell, y: CGFloat(row) * cell, width: cell, height: cell).insetBy(dx: 1, dy: 1)
+                            let rect = metrics
+                                .rectForCell(column: col, row: row)
+                                .insetBy(dx: 1, dy: 1)
                             let shade = (row + col).isMultiple(of: 2)
                             context.fill(
-                                Path(roundedRect: rect, cornerRadius: cell * 0.18),
+                                Path(roundedRect: rect, cornerRadius: metrics.cellSize * 0.18),
                                 with: .color(shade ? Color(red: 0.11, green: 0.16, blue: 0.11) : Color(red: 0.09, green: 0.13, blue: 0.09))
                             )
                         }
                     }
 
                     for segment in snapshot.snake {
-                        let rect = CGRect(x: CGFloat(segment.x) * cell, y: CGFloat(segment.y) * cell, width: cell, height: cell).insetBy(dx: cell * 0.08, dy: cell * 0.08)
+                        let rect = metrics
+                            .rect(for: segment)
+                            .insetBy(dx: metrics.cellSize * 0.08, dy: metrics.cellSize * 0.08)
                         let isHead = segment == snapshot.snake.first
                         context.fill(
-                            Path(roundedRect: rect, cornerRadius: cell * 0.28),
+                            Path(roundedRect: rect, cornerRadius: metrics.cellSize * 0.28),
                             with: .linearGradient(
                                 Gradient(colors: isHead ? [Color(red: 0.98, green: 0.86, blue: 0.28), Color(red: 0.92, green: 0.57, blue: 0.16)] : [snapshot.difficulty.snakePrimary, snapshot.difficulty.snakeSecondary]),
                                 startPoint: CGPoint(x: rect.minX, y: rect.minY),
@@ -47,22 +52,26 @@ struct GameBoardView: View {
                         )
                     }
 
-                    let foodRect = CGRect(x: CGFloat(snapshot.food.x) * cell, y: CGFloat(snapshot.food.y) * cell, width: cell, height: cell).insetBy(dx: cell * 0.12, dy: cell * 0.12)
+                    let foodRect = metrics
+                        .rect(for: snapshot.food)
+                        .insetBy(dx: metrics.cellSize * 0.12, dy: metrics.cellSize * 0.12)
                     context.fill(
                         Path(ellipseIn: foodRect),
                         with: .radialGradient(
                             Gradient(colors: [Color(red: 1.0, green: 0.49, blue: 0.44), Color(red: 0.80, green: 0.14, blue: 0.18)]),
                             center: CGPoint(x: foodRect.midX, y: foodRect.midY),
                             startRadius: 2,
-                            endRadius: cell * 0.5
+                            endRadius: metrics.cellSize * 0.5
                         )
                     )
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-                .padding(18)
+                .padding(boardPadding)
 
                 overlay
             }
+            .frame(width: side, height: side)
+            .position(x: proxy.size.width / 2, y: proxy.size.height / 2)
         }
         .gesture(
             DragGesture(minimumDistance: 20)
@@ -114,5 +123,33 @@ struct GameBoardView: View {
         } else {
             onSwipe(translation.height > 0 ? .down : .up)
         }
+    }
+}
+
+struct GameBoardMetrics {
+    let boardRect: CGRect
+    let cellSize: CGFloat
+
+    init(canvasSize: CGSize, boardSize: Int) {
+        let side = min(canvasSize.width, canvasSize.height)
+        let origin = CGPoint(
+            x: (canvasSize.width - side) / 2,
+            y: (canvasSize.height - side) / 2
+        )
+        self.boardRect = CGRect(origin: origin, size: CGSize(width: side, height: side))
+        self.cellSize = side / CGFloat(boardSize)
+    }
+
+    func rectForCell(column: Int, row: Int) -> CGRect {
+        CGRect(
+            x: boardRect.minX + (CGFloat(column) * cellSize),
+            y: boardRect.minY + (CGFloat(row) * cellSize),
+            width: cellSize,
+            height: cellSize
+        )
+    }
+
+    func rect(for point: SnakePoint) -> CGRect {
+        rectForCell(column: point.x, row: point.y)
     }
 }

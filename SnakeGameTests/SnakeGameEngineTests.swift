@@ -1,3 +1,4 @@
+import CoreGraphics
 import XCTest
 @testable import SnakeGame
 
@@ -104,5 +105,27 @@ final class SnakeGameEngineTests: XCTestCase {
         engineB.startNewGame(difficulty: .classic, boardSize: 10)
 
         XCTAssertEqual(engineA.snapshot.food, engineB.snapshot.food)
+    }
+
+    func testBoardMetricsKeepBottomRightCellInsideVisibleBoard() {
+        let metrics = GameBoardMetrics(canvasSize: CGSize(width: 264, height: 264), boardSize: 18)
+
+        let bottomRight = metrics.rectForCell(column: 17, row: 17)
+
+        XCTAssertEqual(metrics.boardRect.maxX, 264, accuracy: 0.001)
+        XCTAssertEqual(metrics.boardRect.maxY, 264, accuracy: 0.001)
+        XCTAssertLessThanOrEqual(bottomRight.maxX, metrics.boardRect.maxX + 0.001)
+        XCTAssertLessThanOrEqual(bottomRight.maxY, metrics.boardRect.maxY + 0.001)
+    }
+
+    func testBoardMetricsKeepFoodVisibleAfterInset() {
+        let metrics = GameBoardMetrics(canvasSize: CGSize(width: 264, height: 264), boardSize: 18)
+
+        let foodRect = metrics.rect(for: SnakePoint(x: 17, y: 17)).insetBy(dx: metrics.cellSize * 0.12, dy: metrics.cellSize * 0.12)
+
+        XCTAssertGreaterThanOrEqual(foodRect.minX, metrics.boardRect.minX - 0.001)
+        XCTAssertGreaterThanOrEqual(foodRect.minY, metrics.boardRect.minY - 0.001)
+        XCTAssertLessThanOrEqual(foodRect.maxX, metrics.boardRect.maxX + 0.001)
+        XCTAssertLessThanOrEqual(foodRect.maxY, metrics.boardRect.maxY + 0.001)
     }
 }
