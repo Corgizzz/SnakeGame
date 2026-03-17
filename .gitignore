@@ -1,0 +1,18 @@
+# Xcode build output
+DerivedData/
+DerivedData_*/
+.build/
+.swift-module-cache/
+.clang-module-cache/
+
+# User-specific Xcode state
+*.xcuserstate
+xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Test and coverage output
+*.xcresult/
+TestResults/
+
+# macOS noise
+.DS_Store
