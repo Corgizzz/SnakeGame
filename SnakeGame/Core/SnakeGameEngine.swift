@@ -44,7 +44,7 @@ enum SnakeDirection: String, Codable {
 struct SnakeGameSnapshot: Equatable {
     let boardSize: Int
     let snake: [SnakePoint]
-    let food: SnakePoint
+    let food: SnakePoint?
     let direction: SnakeDirection
     let score: Int
     let difficulty: GameDifficulty
@@ -56,6 +56,7 @@ enum TickEvent: Equatable {
     case moved
     case ateFood
     case crashed
+    case victory
 }
 
 struct TickResult: Equatable {
@@ -97,7 +98,7 @@ final class SequenceSnakeRandomNumberProvider: SnakeRandomNumberProviding {
 final class SnakeGameEngine {
     private let randomNumberProvider: SnakeRandomNumberProviding
     private var queuedDirection: SnakeDirection?
-    private var hasCrashed = false
+    private var isTerminalState = false
 
     private(set) var snapshot: SnakeGameSnapshot
 
@@ -130,7 +131,7 @@ final class SnakeGameEngine {
             difficulty: difficulty
         )
         queuedDirection = nil
-        hasCrashed = false
+        isTerminalState = false
     }
 
     func queueDirection(_ direction: SnakeDirection) {
@@ -140,7 +141,7 @@ final class SnakeGameEngine {
     }
 
     func advanceOneTick() -> TickResult {
-        guard !hasCrashed else {
+        guard !isTerminalState else {
             return TickResult(
                 state: snapshot,
                 events: [],
@@ -156,7 +157,7 @@ final class SnakeGameEngine {
             return crashResult(direction: activeDirection)
         }
 
-        let grew = newHead == snapshot.food
+        let grew = snapshot.food == newHead
         let collisionBody = grew ? snapshot.snake : Array(snapshot.snake.dropLast())
         guard !collisionBody.contains(newHead) else {
             return crashResult(direction: activeDirection)
@@ -174,6 +175,10 @@ final class SnakeGameEngine {
             scoreDelta = 1
             events.append(.ateFood)
             food = nextFood(excluding: snake, boardSize: snapshot.boardSize)
+            if food == nil {
+                events.append(.victory)
+                isTerminalState = true
+            }
         } else {
             snake.removeLast()
         }
@@ -199,11 +204,11 @@ final class SnakeGameEngine {
     internal func setSnapshotForTesting(_ snapshot: SnakeGameSnapshot, crashed: Bool = false) {
         self.snapshot = snapshot
         self.queuedDirection = nil
-        self.hasCrashed = crashed
+        self.isTerminalState = crashed
     }
 
     private func crashResult(direction: SnakeDirection) -> TickResult {
-        hasCrashed = true
+        isTerminalState = true
         let crashedState = SnakeGameSnapshot(
             boardSize: snapshot.boardSize,
             snake: snapshot.snake,
@@ -231,7 +236,7 @@ final class SnakeGameEngine {
         (0..<boardSize).contains(point.x) && (0..<boardSize).contains(point.y)
     }
 
-    private func nextFood(excluding snake: [SnakePoint], boardSize: Int) -> SnakePoint {
+    private func nextFood(excluding snake: [SnakePoint], boardSize: Int) -> SnakePoint? {
         let occupied = Set(snake)
         var available: [SnakePoint] = []
         available.reserveCapacity(boardSize * boardSize)
@@ -245,9 +250,7 @@ final class SnakeGameEngine {
             }
         }
 
-        guard !available.isEmpty else {
-            return snake.first ?? SnakePoint(x: boardSize / 2, y: boardSize / 2)
-        }
+        guard !available.isEmpty else { return nil }
 
         let index = randomNumberProvider.nextInt(upperBound: available.count)
         return available[index]

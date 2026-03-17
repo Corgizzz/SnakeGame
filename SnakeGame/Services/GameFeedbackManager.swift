@@ -5,6 +5,7 @@ enum GameEvent {
     case roundStarted
     case foodEaten
     case gameOver
+    case victory
 }
 
 @MainActor
@@ -43,6 +44,7 @@ final class GameFeedbackManager: NSObject, GameFeedbackProviding {
             case .roundStarted: play(.start)
             case .foodEaten: play(.eat)
             case .gameOver: play(.crash)
+            case .victory: play(.start)
             }
         }
 
@@ -57,6 +59,9 @@ final class GameFeedbackManager: NSObject, GameFeedbackProviding {
         case .gameOver:
             notificationFeedback.prepare()
             notificationFeedback.notificationOccurred(.error)
+        case .victory:
+            notificationFeedback.prepare()
+            notificationFeedback.notificationOccurred(.success)
         }
     }
 

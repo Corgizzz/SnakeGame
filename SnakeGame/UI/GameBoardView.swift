@@ -6,11 +6,26 @@ struct GameBoardView: View {
     let snapshot: SnakeGameSnapshot
     let sessionState: GameSessionState
     let countdownValue: Int?
+    let roundOutcome: GameRoundOutcome?
+    let scoreDelta: Int?
     let onSwipe: (SnakeDirection) -> Void
+
+    @State private var foodPulse = false
+    @State private var floatingScoreText: String?
+    @State private var floatingScoreOpacity = 0.0
+    @State private var floatingScoreOffset: CGFloat = 0
+    @State private var floatingScoreScale = 0.8
+    @State private var boardFlashOpacity = 0.0
+    @State private var countdownScale = 0.82
 
     var body: some View {
         GeometryReader { proxy in
             let side = min(proxy.size.width, proxy.size.height)
+            let canvasSide = max(side - (boardPadding * 2), 0)
+            let overlayMetrics = GameBoardMetrics(
+                canvasSize: CGSize(width: canvasSide, height: canvasSide),
+                boardSize: snapshot.boardSize
+            )
 
             ZStack {
                 RoundedRectangle(cornerRadius: 30, style: .continuous)
@@ -52,21 +67,48 @@ struct GameBoardView: View {
                         )
                     }
 
-                    let foodRect = metrics
-                        .rect(for: snapshot.food)
-                        .insetBy(dx: metrics.cellSize * 0.12, dy: metrics.cellSize * 0.12)
-                    context.fill(
-                        Path(ellipseIn: foodRect),
-                        with: .radialGradient(
-                            Gradient(colors: [Color(red: 1.0, green: 0.49, blue: 0.44), Color(red: 0.80, green: 0.14, blue: 0.18)]),
-                            center: CGPoint(x: foodRect.midX, y: foodRect.midY),
-                            startRadius: 2,
-                            endRadius: metrics.cellSize * 0.5
+                    if let food = snapshot.food {
+                        let baseFoodRect = metrics
+                            .rect(for: food)
+                            .insetBy(dx: metrics.cellSize * 0.12, dy: metrics.cellSize * 0.12)
+                        let foodRect = baseFoodRect.scaledAroundCenter(by: foodPulse ? 1.08 : 0.92)
+                        context.addFilter(.shadow(color: Color(red: 1.0, green: 0.42, blue: 0.30).opacity(foodPulse ? 0.35 : 0.15), radius: foodPulse ? 10 : 4, x: 0, y: 0))
+                        context.fill(
+                            Path(ellipseIn: foodRect),
+                            with: .radialGradient(
+                                Gradient(colors: [Color(red: 1.0, green: 0.49, blue: 0.44), Color(red: 0.80, green: 0.14, blue: 0.18)]),
+                                center: CGPoint(x: foodRect.midX, y: foodRect.midY),
+                                startRadius: 2,
+                                endRadius: metrics.cellSize * 0.5
+                            )
                         )
-                    )
+                    }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
                 .padding(boardPadding)
+
+                if let floatingScoreText, sessionState == .running || sessionState == .gameOver {
+                    Text(floatingScoreText)
+                        .font(.system(size: 24, weight: .black, design: .rounded))
+                        .foregroundStyle(Color.white)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(snapshot.difficulty.highlight.opacity(0.92), in: Capsule())
+                        .position(
+                            x: boardPadding + overlayMetrics.boardRect.midX,
+                            y: boardPadding + overlayMetrics.boardRect.minY + (overlayMetrics.cellSize * 1.2)
+                        )
+                        .scaleEffect(floatingScoreScale)
+                        .offset(y: floatingScoreOffset)
+                        .opacity(floatingScoreOpacity)
+                        .allowsHitTesting(false)
+                }
+
+                RoundedRectangle(cornerRadius: 30, style: .continuous)
+                    .fill(flashColor.opacity(boardFlashOpacity))
+                    .padding(boardPadding)
+                    .blendMode(.screen)
+                    .allowsHitTesting(false)
 
                 overlay
             }
@@ -79,6 +121,26 @@ struct GameBoardView: View {
                     handleSwipe(value.translation)
                 }
         )
+        .onAppear {
+            withAnimation(.easeInOut(duration: 0.85).repeatForever(autoreverses: true)) {
+                foodPulse = true
+            }
+        }
+        .onChange(of: snapshot.score) { oldValue, newValue in
+            guard newValue > oldValue else { return }
+            triggerScoreBurst(delta: newValue - oldValue)
+        }
+        .onChange(of: sessionState) { _, newValue in
+            guard newValue == .gameOver, let roundOutcome else { return }
+            triggerBoardFlash(for: roundOutcome)
+        }
+        .onChange(of: countdownValue) { _, newValue in
+            guard newValue != nil else { return }
+            countdownScale = 0.72
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.54)) {
+                countdownScale = 1.0
+            }
+        }
     }
 
     @ViewBuilder
@@ -94,6 +156,8 @@ struct GameBoardView: View {
                         .font(.system(size: 78, weight: .black, design: .rounded))
                         .foregroundStyle(.white)
                         .transition(.scale(scale: 0.55).combined(with: .opacity))
+                        .scaleEffect(countdownScale)
+                        .shadow(color: .white.opacity(0.28), radius: 16)
                 }
                 .padding(.horizontal, 28)
                 .padding(.vertical, 24)
@@ -124,6 +188,44 @@ struct GameBoardView: View {
             onSwipe(translation.height > 0 ? .down : .up)
         }
     }
+
+    private var flashColor: Color {
+        switch roundOutcome {
+        case .victory:
+            return Color(red: 1.0, green: 0.85, blue: 0.26)
+        case .crash, .none:
+            return Color(red: 1.0, green: 0.30, blue: 0.24)
+        }
+    }
+
+    private func triggerScoreBurst(delta: Int) {
+        let amount = scoreDelta ?? delta
+        floatingScoreText = "+\(amount)"
+        floatingScoreOpacity = 1
+        floatingScoreScale = 0.72
+        floatingScoreOffset = 12
+
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.62)) {
+            floatingScoreScale = 1.0
+            floatingScoreOffset = -12
+        }
+
+        withAnimation(.easeOut(duration: 0.42).delay(0.22)) {
+            floatingScoreOpacity = 0
+            floatingScoreOffset = -28
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.72) {
+            floatingScoreText = nil
+        }
+    }
+
+    private func triggerBoardFlash(for outcome: GameRoundOutcome) {
+        boardFlashOpacity = outcome == .victory ? 0.88 : 0.78
+        withAnimation(.easeOut(duration: outcome == .victory ? 0.65 : 0.36)) {
+            boardFlashOpacity = 0.0
+        }
+    }
 }
 
 struct GameBoardMetrics {
@@ -151,5 +253,18 @@ struct GameBoardMetrics {
 
     func rect(for point: SnakePoint) -> CGRect {
         rectForCell(column: point.x, row: point.y)
+    }
+}
+
+private extension CGRect {
+    func scaledAroundCenter(by scale: CGFloat) -> CGRect {
+        let width = self.width * scale
+        let height = self.height * scale
+        return CGRect(
+            x: midX - (width / 2),
+            y: midY - (height / 2),
+            width: width,
+            height: height
+        )
     }
 }

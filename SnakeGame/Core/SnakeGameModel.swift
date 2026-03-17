@@ -16,6 +16,7 @@ final class SnakeGameModel: ObservableObject {
     @Published private(set) var recentStats: GameStatsSnapshot
     @Published private(set) var countdownValue: Int?
     @Published private(set) var lastRoundSummary: GameRoundSummary?
+    @Published private(set) var lastCollectedScoreDelta: Int?
 
     let settingsStore: GameSettingsStore
 
@@ -86,6 +87,7 @@ final class SnakeGameModel: ObservableObject {
         shouldResumeAfterBecomingActive = false
         didRecordCurrentRound = false
         lastRoundSummary = nil
+        lastCollectedScoreDelta = nil
         bestScore = statsStore.bestScore(for: selectedDifficulty)
         recentStats = statsStore.snapshot
     }
@@ -170,6 +172,7 @@ final class SnakeGameModel: ObservableObject {
         sessionState = .countdown
         countdownValue = countdownStart
         lastRoundSummary = nil
+        lastCollectedScoreDelta = nil
         didRecordCurrentRound = false
         shouldResumeAfterBecomingActive = false
         bestScore = statsStore.bestScore(for: difficulty)
@@ -237,15 +240,23 @@ final class SnakeGameModel: ObservableObject {
         currentScore = result.state.score
 
         if result.events.contains(.ateFood) {
+            lastCollectedScoreDelta = result.scoreDelta
             feedback.handle(
                 .foodEaten,
                 soundEnabled: settingsStore.soundEnabled,
                 hapticsEnabled: settingsStore.hapticsEnabled
             )
+        } else {
+            lastCollectedScoreDelta = nil
+        }
+
+        if result.events.contains(.victory) {
+            finishRound(outcome: .victory)
+            return
         }
 
         if result.events.contains(.crashed) {
-            finishRound()
+            finishRound(outcome: .crash)
             return
         }
 
@@ -256,7 +267,7 @@ final class SnakeGameModel: ObservableObject {
         }
     }
 
-    private func finishRound() {
+    private func finishRound(outcome: GameRoundOutcome) {
         invalidateTimer()
         sessionState = .gameOver
 
@@ -272,6 +283,7 @@ final class SnakeGameModel: ObservableObject {
         recentStats = statsStore.snapshot
         bestScore = statsStore.bestScore(for: selectedDifficulty)
         lastRoundSummary = GameRoundSummary(
+            outcome: outcome,
             difficulty: selectedDifficulty,
             score: currentScore,
             bestScore: bestScore,
@@ -279,7 +291,7 @@ final class SnakeGameModel: ObservableObject {
             isNewRecord: isNewRecord
         )
         feedback.handle(
-            .gameOver,
+            outcome == .victory ? .victory : .gameOver,
             soundEnabled: settingsStore.soundEnabled,
             hapticsEnabled: settingsStore.hapticsEnabled
         )
@@ -299,9 +311,15 @@ enum GameSessionState: Equatable {
 }
 
 struct GameRoundSummary: Equatable {
+    let outcome: GameRoundOutcome
     let difficulty: GameDifficulty
     let score: Int
     let bestScore: Int
     let longestSnakeLength: Int
     let isNewRecord: Bool
+}
+
+enum GameRoundOutcome: Equatable {
+    case crash
+    case victory
 }

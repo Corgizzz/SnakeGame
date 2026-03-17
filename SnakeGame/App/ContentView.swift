@@ -112,6 +112,8 @@ struct ContentView: View {
             snapshot: game.snapshot,
             sessionState: game.sessionState,
             countdownValue: game.countdownValue,
+            roundOutcome: game.lastRoundSummary?.outcome,
+            scoreDelta: game.lastCollectedScoreDelta,
             onSwipe: game.turn
         )
         .aspectRatio(1, contentMode: .fit)

@@ -70,9 +70,27 @@ final class SnakeGameModelTests: XCTestCase {
         XCTAssertEqual(model.sessionState, .gameOver)
         XCTAssertEqual(model.recentStats.totalGames, 1)
         XCTAssertEqual(model.bestScore, 0)
+        XCTAssertEqual(model.lastRoundSummary?.outcome, .crash)
 
         forceCrash(on: model)
         XCTAssertEqual(model.recentStats.totalGames, 1)
+    }
+
+    func testVictoryRecordsRoundAndCreatesVictorySummary() {
+        let defaults = UserDefaults(suiteName: UUID().uuidString)!
+        let model = makeModel(defaults: defaults)
+
+        model.startGame()
+        model.processCountdownStep()
+        model.processCountdownStep()
+        model.processCountdownStep()
+        forceVictory(on: model)
+
+        XCTAssertEqual(model.sessionState, .gameOver)
+        XCTAssertEqual(model.currentScore, 4)
+        XCTAssertEqual(model.recentStats.totalGames, 1)
+        XCTAssertEqual(model.bestScore, 4)
+        XCTAssertEqual(model.lastRoundSummary?.outcome, .victory)
     }
 
     private func makeModel(defaults: UserDefaults? = nil) -> SnakeGameModel {
@@ -92,6 +110,24 @@ final class SnakeGameModelTests: XCTestCase {
                 food: SnakePoint(x: 0, y: 0),
                 direction: .right,
                 score: 0,
+                difficulty: model.selectedDifficulty
+            )
+        )
+        model.processGameTick()
+    }
+
+    private func forceVictory(on model: SnakeGameModel) {
+        model.setSnapshotForTesting(
+            SnakeGameSnapshot(
+                boardSize: 2,
+                snake: [
+                    SnakePoint(x: 1, y: 0),
+                    SnakePoint(x: 0, y: 0),
+                    SnakePoint(x: 0, y: 1)
+                ],
+                food: SnakePoint(x: 1, y: 1),
+                direction: .down,
+                score: 3,
                 difficulty: model.selectedDifficulty
             )
         )

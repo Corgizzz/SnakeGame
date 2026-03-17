@@ -15,7 +15,8 @@ final class SnakeGameEngineTests: XCTestCase {
         ])
         XCTAssertEqual(engine.snapshot.direction, .right)
         XCTAssertEqual(engine.snapshot.score, 0)
-        XCTAssertFalse(engine.snapshot.snake.contains(engine.snapshot.food))
+        XCTAssertNotNil(engine.snapshot.food)
+        XCTAssertFalse(engine.snapshot.snake.contains(engine.snapshot.food!))
     }
 
     func testAdvanceOneTickMovesOneCell() {
@@ -62,7 +63,8 @@ final class SnakeGameEngineTests: XCTestCase {
         XCTAssertEqual(result.state.score, 1)
         XCTAssertEqual(result.state.snake.count, 4)
         XCTAssertTrue(result.events.contains(.ateFood))
-        XCTAssertFalse(result.state.snake.contains(result.state.food))
+        XCTAssertNotNil(result.state.food)
+        XCTAssertFalse(result.state.snake.contains(result.state.food!))
     }
 
     func testCrashEventReturnedForWallCollision() {
@@ -105,6 +107,31 @@ final class SnakeGameEngineTests: XCTestCase {
         engineB.startNewGame(difficulty: .classic, boardSize: 10)
 
         XCTAssertEqual(engineA.snapshot.food, engineB.snapshot.food)
+    }
+
+    func testEatingLastFoodTriggersVictoryAndClearsFood() {
+        let engine = SnakeGameEngine(randomNumberProvider: SequenceSnakeRandomNumberProvider(values: [0]))
+        engine.setSnapshotForTesting(
+            SnakeGameSnapshot(
+                boardSize: 2,
+                snake: [
+                    SnakePoint(x: 1, y: 0),
+                    SnakePoint(x: 0, y: 0),
+                    SnakePoint(x: 0, y: 1)
+                ],
+                food: SnakePoint(x: 1, y: 1),
+                direction: .down,
+                score: 3,
+                difficulty: .classic
+            )
+        )
+
+        let result = engine.advanceOneTick()
+
+        XCTAssertTrue(result.events.contains(.ateFood))
+        XCTAssertTrue(result.events.contains(.victory))
+        XCTAssertNil(result.state.food)
+        XCTAssertEqual(result.state.snake.count, 4)
     }
 
     func testBoardMetricsKeepBottomRightCellInsideVisibleBoard() {
