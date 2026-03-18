@@ -1,10 +1,37 @@
 # SnakeGame
 
+![Platform](https://img.shields.io/badge/platform-iPhone%20%2B%20iPad-1f6feb)
+![iOS](https://img.shields.io/badge/iOS-17%2B-111827)
+![UI](https://img.shields.io/badge/UI-SwiftUI-0ea5e9)
+![Tests](https://img.shields.io/badge/tests-15%20passing-16a34a)
+![Status](https://img.shields.io/badge/status-active%20development-f59e0b)
+
 SwiftUI snake for iPhone and iPad, built as a polished local arcade app.
 
 一個使用 `SwiftUI` 製作、可同時跑在 `iPhone` 與 `iPad` 的單機貪吃蛇遊戲，重點放在手感、穩定的 game loop，以及可維護的結構分層。
 
 `SwiftUI` · `Universal iPhone/iPad` · `Local Stats` · `Touch + Keyboard Controls`
+
+## Demo / 專案定位
+
+SnakeGame is a universal iOS arcade project focused on clean game rules, responsive controls, and a maintainable SwiftUI architecture rather than a one-file prototype.
+
+這不是只求能跑的單檔 demo，而是一個已經拆出 `engine / model / stores / services / views` 分層、可持續擴充的 iOS 小遊戲專案。
+
+- Repo: [github.com/Corgizzz/SnakeGame](https://github.com/Corgizzz/SnakeGame)
+- Current build target: `iPhone` and `iPad`
+- Current input methods: swipe, on-screen D-pad, arrow keys, `WASD`
+
+## Version / 版本資訊
+
+| Item | Value |
+| --- | --- |
+| Milestone | `v1.1` gameplay polish snapshot |
+| Status | Active development |
+| Platform | iOS 17+ |
+| Layout | Universal iPhone + iPad |
+| Test status | `15` unit tests passing |
+| Persistence | Local-only (`UserDefaults`) |
 
 ## Features / 功能特色
 
@@ -23,9 +50,9 @@ SwiftUI snake for iPhone and iPad, built as a polished local arcade app.
 
 ## Screenshots / 畫面預覽
 
-> The current preview images are generated from the app's SwiftUI views inside this repository. The CoreSimulator service is unavailable in this environment, so these are rendered stills rather than live simulator captures.
+> The current preview images are generated from the app's SwiftUI views inside this repository. The CoreSimulator service was unavailable in this environment during the README refresh, so these are rendered stills rather than live simulator captures.
 >
-> 目前這組預覽圖是直接用 repo 內的 SwiftUI 畫面靜態輸出。因為這台環境的 CoreSimulator 無法啟動，所以不是 simulator 即時截圖，但畫面內容仍對應目前專案版本。
+> 目前這組預覽圖是直接用 repo 內的 SwiftUI 畫面靜態輸出。因為更新 README 時這台環境的 CoreSimulator 無法啟動，所以不是 simulator 即時截圖，但畫面內容仍對應目前專案版本。
 
 | Menu / 主選單 | Gameplay / 遊玩畫面 | Result / 結算畫面 |
 | --- | --- | --- |
@@ -86,7 +113,7 @@ xcodebuild \
 ## Architecture / 架構概念
 
 - `SnakeGameEngine`
-  Pure game rules. It advances one tick at a time, resolves growth / collision / victory, and stays independent from UI, timers, and persistence.
+  Pure game rules. It advances one tick at a time, resolves growth, collision, speed changes, and victory without depending on UI, timers, or persistence.
 - `SnakeGameModel`
   Session controller. It owns the countdown, active timer, lifecycle handling, feedback dispatch, and store integration.
 - `Stores`
