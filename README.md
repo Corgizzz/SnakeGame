@@ -50,9 +50,9 @@ SnakeGame is a universal iOS arcade project focused on clean game rules, respons
 
 ## Screenshots / 畫面預覽
 
-> The current preview images are generated from the app's SwiftUI views inside this repository. The CoreSimulator service was unavailable in this environment during the README refresh, so these are rendered stills rather than live simulator captures.
+> The screenshots below are captured from automated simulator runs of the app: `iPhone 16` for menu/result and `iPad Pro 13-inch (M4)` for gameplay.
 >
-> 目前這組預覽圖是直接用 repo 內的 SwiftUI 畫面靜態輸出。因為更新 README 時這台環境的 CoreSimulator 無法啟動，所以不是 simulator 即時截圖，但畫面內容仍對應目前專案版本。
+> 下面這組圖已改成真實 simulator 截圖：主選單與結算畫面來自 `iPhone 16`，遊玩畫面來自 `iPad Pro 13-inch (M4)`。
 
 | Menu / 主選單 | Gameplay / 遊玩畫面 | Result / 結算畫面 |
 | --- | --- | --- |

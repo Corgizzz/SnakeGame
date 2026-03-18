@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import XCTest
 @testable import SnakeGame
 
@@ -93,6 +94,35 @@ final class SnakeGameModelTests: XCTestCase {
         XCTAssertEqual(model.lastRoundSummary?.outcome, .victory)
     }
 
+    override func tearDown() {
+        ScreenshotPreviewCoordinator.shared.scenario = nil
+        super.tearDown()
+    }
+
+    func testCaptureMenuScreenshotOnPhone() throws {
+        try captureScreenshot(
+            named: "menu-iphone",
+            scenario: .menu,
+            expectedIdiom: .phone
+        )
+    }
+
+    func testCaptureResultScreenshotOnPhone() throws {
+        try captureScreenshot(
+            named: "result-iphone",
+            scenario: .result,
+            expectedIdiom: .phone
+        )
+    }
+
+    func testCaptureGameplayScreenshotOnPad() throws {
+        try captureScreenshot(
+            named: "gameplay-ipad",
+            scenario: .gameplay,
+            expectedIdiom: .pad
+        )
+    }
+
     private func makeModel(defaults: UserDefaults? = nil) -> SnakeGameModel {
         let defaults = defaults ?? UserDefaults(suiteName: UUID().uuidString)!
         let settings = GameSettingsStore(defaults: defaults)
@@ -132,6 +162,39 @@ final class SnakeGameModelTests: XCTestCase {
             )
         )
         model.processGameTick()
+    }
+
+    private func captureScreenshot(
+        named: String,
+        scenario: ScreenshotScenario,
+        expectedIdiom: UIUserInterfaceIdiom
+    ) throws {
+        guard UIDevice.current.userInterfaceIdiom == expectedIdiom else {
+            throw XCTSkip("Screenshot '\(named)' only runs on \(expectedIdiom == .pad ? "iPad" : "iPhone") simulators.")
+        }
+
+        ScreenshotPreviewCoordinator.shared.scenario = scenario
+        RunLoop.main.run(until: Date().addingTimeInterval(1.0))
+
+        let image = try makeWindowSnapshot()
+        let attachment = XCTAttachment(image: image)
+        attachment.name = named
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    private func makeWindowSnapshot() throws -> UIImage {
+        guard let windowScene = UIApplication.shared.connectedScenes
+            .compactMap({ $0 as? UIWindowScene })
+            .first,
+              let window = windowScene.windows.first(where: \.isKeyWindow) ?? windowScene.windows.first else {
+            throw XCTSkip("No active UIWindow is available for screenshot capture.")
+        }
+
+        let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
+        return renderer.image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
     }
 }
 
