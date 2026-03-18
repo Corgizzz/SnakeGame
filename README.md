@@ -1,56 +1,54 @@
 # SnakeGame
 
-Universal SwiftUI snake game for iPhone and iPad.
+SwiftUI snake for iPhone and iPad, built as a polished local arcade app.
 
-## Features
+一個使用 `SwiftUI` 製作、可同時跑在 `iPhone` 與 `iPad` 的單機貪吃蛇遊戲，重點放在手感、穩定的 game loop，以及可維護的結構分層。
 
-- Universal layout for iPhone and iPad
-- SwiftUI-based game UI with touch and keyboard controls
-- Three difficulty modes: `Chill`, `Classic`, `Frenzy`
-- Countdown, pause/resume, game over summary
-- Per-difficulty best score tracking
-- Local stats for recent rounds, longest snake, and total games
-- Sound and haptic feedback with persistent settings
-- Unit tests for the game engine and session state machine
+`SwiftUI` · `Universal iPhone/iPad` · `Local Stats` · `Touch + Keyboard Controls`
 
-## Project Structure
+## Features / 功能特色
 
-```text
-SnakeGame/
-├── App/         App entry and root container view
-├── Core/        Game rules, model, session state, difficulty types
-├── UI/          Menu, board, HUD, controls, overlays, theme
-├── Stores/      Persistent settings and stats stores
-├── Services/    Audio and haptic feedback service
-└── Resources/   Info.plist, launch screen, sounds, assets
+- Three difficulty modes: `Chill`, `Classic`, and `Frenzy`, each with a different speed curve and acceleration profile.
+  三種難度各自有不同的起始速度與加速曲線，不只是單純改快慢。
+- Touch-first controls with swipe input, an on-screen D-pad, plus hardware keyboard support for arrow keys and `WASD`.
+  支援滑動操作、螢幕方向鍵，以及外接鍵盤方向鍵與 `WASD`。
+- Stable session flow with `menu`, `countdown`, `running`, `paused`, and `gameOver` states.
+  遊戲狀態有明確 state machine，避免 timer 重複建立或 lifecycle 混亂。
+- Background interruptions pause the round and resume through a countdown instead of dropping the player straight back into motion.
+  App 進背景會暫停，回前景會先倒數再恢復，避免直接回到高速狀態。
+- Local progress tracking with per-difficulty best scores, recent rounds, longest snake, and total games played.
+  內建本地統計，包含各難度最高分、最近幾局、最長蛇身與總遊玩局數。
+- Victory handling for full-board clears, plus gameplay feedback such as food pulse, countdown animation, and crash / victory flashes.
+  補齊滿版勝利條件，並加入倒數、食物脈動、死亡與勝利回饋動畫。
 
-SnakeGameTests/  Engine and model unit tests
-```
+## Screenshots / 畫面預覽
 
-## Key Files
+> The current preview images are generated from the app's SwiftUI views inside this repository. The CoreSimulator service is unavailable in this environment, so these are rendered stills rather than live simulator captures.
+>
+> 目前這組預覽圖是直接用 repo 內的 SwiftUI 畫面靜態輸出。因為這台環境的 CoreSimulator 無法啟動，所以不是 simulator 即時截圖，但畫面內容仍對應目前專案版本。
 
-- `SnakeGame/App/SnakeGameApp.swift`: app entry point
-- `SnakeGame/App/ContentView.swift`: root container that switches between menu and game flows
-- `SnakeGame/Core/SnakeGameEngine.swift`: pure game engine with deterministic random support for tests
-- `SnakeGame/Core/SnakeGameModel.swift`: timer, lifecycle, state machine, stats integration
-- `SnakeGame/Stores/GameSettingsStore.swift`: persistent sound and haptics settings
-- `SnakeGame/Stores/GameStatsStore.swift`: persistent scores and round history
+| Menu / 主選單 | Gameplay / 遊玩畫面 | Result / 結算畫面 |
+| --- | --- | --- |
+| ![Menu preview](docs/screenshots/menu-iphone.png) | ![Gameplay preview](docs/screenshots/gameplay-ipad.png) | ![Result preview](docs/screenshots/result-iphone.png) |
 
-## Architecture
+## Controls / 操作方式
 
-The project keeps the game rules separate from UI concerns:
+- Swipe anywhere on the board to turn the snake.
+  在棋盤上任意方向滑動即可轉向。
+- Use the on-screen D-pad when you want more deliberate taps.
+  如果你想要更穩定的輸入，可以直接用畫面上的方向鍵。
+- On iPad with a hardware keyboard, use arrow keys or `W`, `A`, `S`, `D`.
+  iPad 外接鍵盤時可直接使用方向鍵或 `WASD`。
+- The game ignores illegal instant reverse turns.
+  非法的 180 度瞬間反向輸入會被忽略。
 
-- `SnakeGameEngine` is a pure rules engine. It advances the snake one tick at a time and returns a `TickResult`.
-- `SnakeGameModel` is the session controller. It owns the timer, app lifecycle handling, countdown flow, and persistence hooks.
-- SwiftUI views render state only. They do not create timers or write to `UserDefaults` directly.
-- Settings and stats are stored in dedicated stores so they remain testable and easy to replace later.
+## Quick Start / 快速啟動
 
-## Requirements
+Open [`SnakeGame.xcodeproj`](/Users/cfh00583031/Desktop/Codex_Game/SnakeGame.xcodeproj) in Xcode and run the `SnakeGame` scheme on an iPhone or iPad destination.
 
-- Xcode 16 or newer
-- iOS Simulator or iOS device target supported by the installed Xcode toolchain
+用 Xcode 開啟 [`SnakeGame.xcodeproj`](/Users/cfh00583031/Desktop/Codex_Game/SnakeGame.xcodeproj)，選擇 `SnakeGame` scheme，然後執行到 iPhone 或 iPad 目標即可。
 
-## Build
+### Build / 編譯
 
 ```bash
 xcodebuild \
@@ -64,7 +62,7 @@ xcodebuild \
   build
 ```
 
-## Test
+### Test / 測試
 
 ```bash
 xcodebuild \
@@ -77,14 +75,48 @@ xcodebuild \
   test
 ```
 
-## Gameplay Notes
+## Tech Stack / 技術摘要
 
-- The board size is currently fixed at `18 x 18`.
-- Backgrounding the app pauses the round.
-- Returning to the foreground resumes through a 3-second countdown.
-- Keyboard input supports arrow keys and `WASD` when hardware keyboard input is available.
+- `SwiftUI` for app structure and screen composition
+- `Canvas` for board rendering
+- `AVFoundation` and UIKit feedback generators for sound and haptics
+- `UserDefaults` with Codable snapshots for local settings and stats
+- `XCTest` for engine and session-state validation
 
-## Repository Hygiene
+## Architecture / 架構概念
 
-- Generated build output such as `DerivedData*`, `.xcresult`, and user-specific Xcode state are ignored via `.gitignore`.
-- The workspace root is expected to stay limited to source, tests, project files, and documentation.
+- `SnakeGameEngine`
+  Pure game rules. It advances one tick at a time, resolves growth / collision / victory, and stays independent from UI, timers, and persistence.
+- `SnakeGameModel`
+  Session controller. It owns the countdown, active timer, lifecycle handling, feedback dispatch, and store integration.
+- `Stores`
+  `GameSettingsStore` keeps sound and haptic preferences. `GameStatsStore` keeps per-difficulty best scores and recent-round history.
+- `Views`
+  SwiftUI views render state only. They do not write directly to `UserDefaults` and they do not create timers.
+
+## Roadmap / 後續方向
+
+- Add UI tests for menu, countdown, pause, and result flow.
+- Extend gameplay with more modes while keeping the current engine deterministic.
+- Evaluate Game Center once the local stat model is stable.
+- Finish release-ready bundle ID, signing, and device deployment setup.
+- Replace the generated preview stills with live simulator captures when CoreSimulator is healthy again.
+
+## Repository Notes / 倉庫說明
+
+- Generated build artifacts such as `DerivedData*`, `.xcresult`, and Xcode user state are ignored in [`.gitignore`](/Users/cfh00583031/Desktop/Codex_Game/.gitignore).
+- The repository root is intentionally small: source, tests, project files, docs, and no committed build output.
+- The current source layout is:
+
+```text
+SnakeGame/
+├── App/
+├── Core/
+├── Stores/
+├── Services/
+├── UI/
+└── Resources/
+
+SnakeGameTests/
+docs/screenshots/
+```

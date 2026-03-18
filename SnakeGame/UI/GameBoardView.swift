@@ -89,18 +89,16 @@ struct GameBoardView: View {
 
                 if let floatingScoreText, sessionState == .running || sessionState == .gameOver {
                     Text(floatingScoreText)
-                        .font(.system(size: 24, weight: .black, design: .rounded))
-                        .foregroundStyle(Color.white)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(snapshot.difficulty.highlight.opacity(0.92), in: Capsule())
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.white.opacity(0.82))
                         .position(
-                            x: boardPadding + overlayMetrics.boardRect.midX,
-                            y: boardPadding + overlayMetrics.boardRect.minY + (overlayMetrics.cellSize * 1.2)
+                            x: boardPadding + overlayMetrics.boardRect.maxX - (overlayMetrics.cellSize * 1.2),
+                            y: boardPadding + overlayMetrics.boardRect.minY + (overlayMetrics.cellSize * 0.95)
                         )
                         .scaleEffect(floatingScoreScale)
                         .offset(y: floatingScoreOffset)
                         .opacity(floatingScoreOpacity)
+                        .shadow(color: snapshot.difficulty.highlight.opacity(0.18), radius: 4, x: 0, y: 1)
                         .allowsHitTesting(false)
                 }
 
@@ -201,21 +199,25 @@ struct GameBoardView: View {
     private func triggerScoreBurst(delta: Int) {
         let amount = scoreDelta ?? delta
         floatingScoreText = "+\(amount)"
-        floatingScoreOpacity = 1
-        floatingScoreScale = 0.72
-        floatingScoreOffset = 12
+        floatingScoreOpacity = 0.0
+        floatingScoreScale = 0.94
+        floatingScoreOffset = 4
 
-        withAnimation(.spring(response: 0.28, dampingFraction: 0.62)) {
+        withAnimation(.easeOut(duration: 0.12)) {
+            floatingScoreOpacity = 0.82
+        }
+
+        withAnimation(.easeOut(duration: 0.18)) {
             floatingScoreScale = 1.0
-            floatingScoreOffset = -12
+            floatingScoreOffset = -4
         }
 
-        withAnimation(.easeOut(duration: 0.42).delay(0.22)) {
+        withAnimation(.easeOut(duration: 0.18).delay(0.10)) {
             floatingScoreOpacity = 0
-            floatingScoreOffset = -28
+            floatingScoreOffset = -10
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.72) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
             floatingScoreText = nil
         }
     }
